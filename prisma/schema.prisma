@@ -1,0 +1,353 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  OWNER
+  MEMBER
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  password  String
+  role      Role     @default(MEMBER)
+  status    Status   @default(ACTIVE)
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile     MemberProfile?
+  memberships Membership[]
+  attendances Attendance[]
+  payments    Payment[]
+  classBookings ClassBooking[]
+  workoutPlans  WorkoutPlan[]
+  dietPlans     DietPlan[]
+}
+
+model Gym {
+  id        String   @id @default(cuid())
+  name      String
+  logo      String?
+  phone     String?
+  email     String?
+  address   String?
+  city      String?
+  country   String?
+  currency  String   @default("USD")
+  timezone  String   @default("UTC")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MemberProfile {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memberId              String?  @unique
+  phone                 String?
+  gender                String?
+  dob                   DateTime?
+  address               String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  emergencyContactRel   String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model Settings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  action    String
+  entity    String
+  entityId  String
+  timestamp DateTime @default(now())
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INACTIVE
+  FROZEN
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  BKASH
+  NAGAD
+  CARD
+  BANK
+  OTHER
+}
+
+enum ExpenseCategory {
+  RENT
+  ELECTRICITY
+  WATER
+  EQUIPMENT
+  MAINTENANCE
+  CLEANING
+  MARKETING
+  SALARY
+  INTERNET
+  OTHER
+}
+
+enum CheckInMethod {
+  MANUAL
+  QR_CODE
+  BIOMETRIC
+}
+
+model MembershipPlan {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  duration    Int      // Duration in days (e.g. 30, 90, 365)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships Membership[]
+}
+
+model Membership {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId    String
+  plan      MembershipPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  startDate DateTime
+  endDate   DateTime
+  status    MembershipStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments  Payment[]
+  freezes   MembershipFreeze[]
+}
+
+model MembershipFreeze {
+  id           String   @id @default(cuid())
+  membershipId String
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  startDate    DateTime
+  endDate      DateTime
+  reason       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  receiptNumber String?
+  userId        String?
+  user          User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  membershipId  String?
+  membership    Membership?   @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  amount        Float
+  status        PaymentStatus @default(COMPLETED)
+  paymentDate   DateTime      @default(now())
+  paymentMethod String        @default("CASH")
+  reference     String?
+  note          String?
+  cancelReason  String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  category    ExpenseCategory @default(OTHER)
+  amount      Float
+  expenseDate DateTime        @default(now())
+  description String
+  reference   String?
+  status      Status          @default(ACTIVE)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model Attendance {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checkInAt   DateTime @default(now())
+  checkOutAt  DateTime?
+  method      CheckInMethod @default(MANUAL)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum ClassStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ScheduleStatus {
+  ACTIVE
+  CANCELLED
+  COMPLETED
+}
+
+enum BookingStatus {
+  BOOKED
+  CANCELLED
+  ATTENDED
+  NO_SHOW
+}
+
+enum PlanStatus {
+  ACTIVE
+  INACTIVE
+  COMPLETED
+}
+
+model Class {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  duration    Int            // duration in minutes (e.g. 60)
+  capacity    Int            @default(20)
+  status      ClassStatus    @default(ACTIVE)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  schedules   ClassSchedule[]
+}
+
+model ClassSchedule {
+  id          String         @id @default(cuid())
+  classId     String
+  class       Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  date        DateTime
+  startTime   String         // e.g. "07:00 AM"
+  endTime     String         // e.g. "08:00 AM"
+  capacity    Int            @default(20)
+  status      ScheduleStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  bookings    ClassBooking[]
+
+  @@index([date])
+  @@index([classId])
+}
+
+model ClassBooking {
+  id              String         @id @default(cuid())
+  classScheduleId String
+  classSchedule   ClassSchedule  @relation(fields: [classScheduleId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          BookingStatus  @default(BOOKED)
+  bookedAt        DateTime       @default(now())
+  cancelledAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([classScheduleId, userId])
+  @@index([userId])
+  @@index([classScheduleId, status])
+}
+
+model WorkoutPlan {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  startDate   DateTime          @default(now())
+  endDate     DateTime?
+  status      PlanStatus        @default(ACTIVE)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  exercises   WorkoutExercise[]
+
+  @@index([userId, status])
+}
+
+model WorkoutExercise {
+  id            String      @id @default(cuid())
+  workoutPlanId String
+  workoutPlan   WorkoutPlan @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade)
+  day           String      // e.g. "MONDAY", "WEDNESDAY", "FRIDAY"
+  exerciseName  String      // e.g. "Bench Press"
+  sets          Int         @default(3)
+  reps          String      @default("10")
+  weight        Float       @default(0) // weight in kg
+  restSeconds   Int         @default(60) // rest between sets in seconds
+  instructions  String?
+  order         Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([workoutPlanId, day])
+}
+
+model DietPlan {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  startDate   DateTime    @default(now())
+  endDate     DateTime?
+  status      PlanStatus  @default(ACTIVE)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  meals       DietMeal[]
+
+  @@index([userId, status])
+}
+
+model DietMeal {
+  id           String    @id @default(cuid())
+  dietPlanId   String
+  dietPlan     DietPlan  @relation(fields: [dietPlanId], references: [id], onDelete: Cascade)
+  mealTime     String    // e.g. "08:00 AM"
+  mealName     String    // e.g. "Breakfast"
+  food         String    // e.g. "Oats + 2 Eggs + 1 Banana"
+  instructions String?
+  order        Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([dietPlanId, order])
+}
+
