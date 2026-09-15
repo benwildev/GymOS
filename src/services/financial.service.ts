@@ -16,7 +16,7 @@ export async function generateReceiptNumber(tx?: any): Promise<string> {
   let candidate = `REC-${nextNum.toString().padStart(6, "0")}`;
 
   // Ensure collision safety
-  let exists = await db.payment.findUnique({
+  let exists = await db.payment.findFirst({
     where: { receiptNumber: candidate },
   });
 
@@ -24,7 +24,7 @@ export async function generateReceiptNumber(tx?: any): Promise<string> {
   while (exists) {
     counter++;
     candidate = `REC-${counter.toString().padStart(6, "0")}`;
-    exists = await db.payment.findUnique({
+    exists = await db.payment.findFirst({
       where: { receiptNumber: candidate },
     });
   }

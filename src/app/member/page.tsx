@@ -1,14 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Activity, Calendar, ShieldCheck, CreditCard, AlertCircle, ArrowRight, CheckCircle2, CalendarDays, Dumbbell, Utensils } from "lucide-react";
+import { Activity, Calendar, ShieldCheck, CreditCard, AlertCircle, ArrowRight, CheckCircle2, CalendarDays, Dumbbell, Utensils, Megaphone, Target } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { MembershipStatus, BookingStatus, ScheduleStatus, PlanStatus } from "@/types/enums";
 import { getMemberFinancialSummary } from "@/services/financial.service";
+import { getMemberProgress } from "@/services/member-progress.service";
+import { getActiveAnnouncements } from "@/services/notification.service";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
-import { startOfDay, endOfDay } from "date-fns";
+import { startOfDay, endOfDay, formatDistanceToNow } from "date-fns";
 
 export default async function MemberDashboardPage() {
   const session = await auth();
@@ -22,7 +24,7 @@ export default async function MemberDashboardPage() {
   const daysOfWeek = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
   const currentDayName = daysOfWeek[new Date().getDay()];
 
-  const [member, financialSummary, gym, todayBookedClass, todayWorkoutPlan, activeDietPlan] = await Promise.all([
+  const [member, financialSummary, gym, todayBookedClass, todayWorkoutPlan, activeDietPlan, announcements, progress] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
       include: {
@@ -74,6 +76,8 @@ export default async function MemberDashboardPage() {
         },
       },
     }),
+    getActiveAnnouncements(session.user.id),
+    getMemberProgress(session.user.id),
   ]);
 
   const currency = gym?.currency || "USD";
@@ -114,6 +118,29 @@ export default async function MemberDashboardPage() {
               <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </Link>
+        </div>
+      )}
+
+      {/* Announcements */}
+      {announcements && announcements.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-gray-900 flex items-center gap-2">
+            <Megaphone className="w-4 h-4 text-emerald-600" />
+            Gym Announcements
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {announcements.map((announcement) => (
+              <div key={announcement.id} className="p-4 rounded-xl border border-gray-200 bg-white shadow-2xs space-y-2">
+                <div className="flex justify-between items-start gap-2">
+                  <h3 className="font-semibold text-gray-900 leading-tight">{announcement.title}</h3>
+                  <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                    {formatDistanceToNow(new Date(announcement.createdAt), { addSuffix: true })}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 whitespace-pre-wrap">{announcement.content}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -217,7 +244,7 @@ export default async function MemberDashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Membership Status */}
         <Card className={isExpiringSoon ? "border-amber-500 ring-1 ring-amber-500/50 bg-amber-50/10" : ""}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -243,8 +270,55 @@ export default async function MemberDashboardPage() {
             ) : (
               <>
                 <div className="text-xl font-bold text-muted-foreground">Inactive</div>
-                <p className="text-xs text-muted-foreground mt-1">You don't have an active membership.</p>
+                <p className="text-xs text-muted-foreground mt-1">You don&apos;t have an active membership.</p>
               </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Fitness Goal Card */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Fitness Goal</CardTitle>
+            <Target className="h-4 w-4 text-emerald-600" />
+          </CardHeader>
+          <CardContent>
+            {progress.activeGoal ? (
+              <div className="space-y-2">
+                <div>
+                  <div className="text-[11px] text-muted-foreground uppercase font-semibold">Active Milestone</div>
+                  <div className="text-base font-bold text-slate-900 truncate mt-0.5">
+                    {progress.activeGoal.title}
+                  </div>
+                </div>
+
+                <div className="flex items-baseline justify-between text-xs pt-1 border-t border-slate-100">
+                  <span className="text-muted-foreground">Target:</span>
+                  <span className="font-semibold text-emerald-700">
+                    {progress.activeGoal.targetValue
+                      ? `${progress.activeGoal.targetValue} ${progress.activeGoal.targetUnit || ""}`
+                      : "General Fitness"}
+                  </span>
+                </div>
+
+                <div className="pt-2">
+                  <Link href="/member/progress" className="text-xs font-semibold text-emerald-700 hover:underline flex items-center gap-1">
+                    View Goals &rarr;
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-slate-800">Set Your Fitness Goal</div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Define your milestones to stay motivated and track your accomplishments.
+                </p>
+                <div className="pt-1">
+                  <Link href="/member/progress" className="text-xs font-semibold text-emerald-700 hover:underline flex items-center gap-1">
+                    Manage Goals &rarr;
+                  </Link>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -264,11 +338,11 @@ export default async function MemberDashboardPage() {
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Total settled to date: {formatCurrency(financialSummary.totalPaid, currency)}
+                  Total settled: {formatCurrency(financialSummary.totalPaid, currency)}
                 </p>
                 <div className="mt-3">
                   <Link href="/member/payments" className="text-xs font-medium text-primary hover:underline flex items-center gap-1">
-                    View payment history <ArrowRight className="w-3 h-3" />
+                    View history <ArrowRight className="w-3 h-3" />
                   </Link>
                 </div>
               </div>
@@ -279,9 +353,9 @@ export default async function MemberDashboardPage() {
         </Card>
 
         {/* Quick Attendance / Visits */}
-        <Card className="md:col-span-2 lg:col-span-1">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Check-in Quick Pass</CardTitle>
+            <CardTitle className="text-sm font-medium">Quick Pass</CardTitle>
             <Activity className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
@@ -291,7 +365,7 @@ export default async function MemberDashboardPage() {
                 {financialSummary?.memberId || "N/A"}
               </div>
               <p className="text-[11px] text-muted-foreground text-center">
-                Present at reception terminal for quick check-in.
+                Present at terminal for check-in.
               </p>
             </div>
           </CardContent>

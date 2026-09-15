@@ -10,18 +10,21 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Eye, EyeOff, Lock } from "lucide-react";
 
 export default function NewMemberWizard({ plans }: { plans: MembershipPlan[] }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
+    password: "",
     phone: "",
     gender: "",
     dob: "",
@@ -48,6 +51,10 @@ export default function NewMemberWizard({ plans }: { plans: MembershipPlan[] }) 
     if (step === 1) {
       if (!formData.firstName || !formData.email) {
         setError("First Name and Email are required.");
+        return;
+      }
+      if (formData.password && formData.password.length < 6) {
+        setError("Password must be at least 6 characters long.");
         return;
       }
     }
@@ -154,6 +161,37 @@ export default function NewMemberWizard({ plans }: { plans: MembershipPlan[] }) 
                     <SelectItem value="OTHER">Other</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-slate-400" />
+                    Initial Portal Password
+                  </Label>
+                  <span className="text-[11px] text-muted-foreground">
+                    Optional &bull; Defaults to <strong className="text-slate-700 font-semibold">password123</strong>
+                  </span>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Set custom password (min 6 chars) or leave blank"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
             </div>
             
@@ -268,6 +306,11 @@ export default function NewMemberWizard({ plans }: { plans: MembershipPlan[] }) 
                   
                   <div className="text-muted-foreground">Gender:</div>
                   <div className="font-medium">{formData.gender || "-"}</div>
+
+                  <div className="text-muted-foreground">Portal Password:</div>
+                  <div className="font-medium">
+                    {formData.password ? "•••••••• (Custom)" : "password123 (Default)"}
+                  </div>
                 </div>
               </div>
 

@@ -1,9 +1,10 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { LogOut, Home, User, ClipboardCheck, CreditCard, CalendarDays, Dumbbell, Utensils } from "lucide-react";
+import { LogOut, Home, User, ClipboardCheck, CreditCard, CalendarDays, Dumbbell, Utensils, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth";
+import { NotificationBell } from "@/components/notification-bell";
 
 export default async function MemberLayout({
   children,
@@ -27,6 +28,7 @@ export default async function MemberLayout({
           </Link>
           <nav className="hidden md:flex items-center gap-5 text-sm font-medium">
             <Link href="/member" className="text-gray-600 hover:text-black transition-colors">Home</Link>
+            <Link href="/member/progress" className="text-gray-600 hover:text-black transition-colors">Goals</Link>
             <Link href="/member/classes" className="text-gray-600 hover:text-black transition-colors">Classes</Link>
             <Link href="/member/workout" className="text-gray-600 hover:text-black transition-colors">Workout</Link>
             <Link href="/member/diet" className="text-gray-600 hover:text-black transition-colors">Diet</Link>
@@ -36,14 +38,15 @@ export default async function MemberLayout({
           </nav>
         </div>
         <div className="flex items-center gap-2">
+          <NotificationBell />
           <span className="text-xs font-medium text-gray-700 hidden sm:block bg-gray-100 px-2.5 py-1 rounded-full">{session?.user?.name}</span>
           <form
             action={async () => {
               "use server";
-              await signOut();
+              await signOut({ redirectTo: "/login" });
             }}
           >
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-red-600">
+            <Button type="submit" variant="ghost" size="icon" className="text-muted-foreground hover:text-red-600 cursor-pointer">
               <LogOut className="h-4 w-4" />
             </Button>
           </form>
@@ -59,6 +62,10 @@ export default async function MemberLayout({
         <Link href="/member" className="flex flex-col items-center gap-1 text-gray-500 hover:text-black py-1">
           <Home className="h-5 w-5" />
           <span className="text-[10px] font-medium">Home</span>
+        </Link>
+        <Link href="/member/progress" className="flex flex-col items-center gap-1 text-gray-500 hover:text-black py-1">
+          <Target className="h-5 w-5" />
+          <span className="text-[10px] font-medium">Goals</span>
         </Link>
         <Link href="/member/classes" className="flex flex-col items-center gap-1 text-gray-500 hover:text-black py-1">
           <CalendarDays className="h-5 w-5" />

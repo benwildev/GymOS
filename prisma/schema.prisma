@@ -37,6 +37,9 @@ model User {
   classBookings ClassBooking[]
   workoutPlans  WorkoutPlan[]
   dietPlans     DietPlan[]
+  notifications Notification[]
+  goals         MemberGoal[]
+  notes         MemberNote[]
 }
 
 model Gym {
@@ -349,5 +352,88 @@ model DietMeal {
   updatedAt    DateTime  @updatedAt
 
   @@index([dietPlanId, order])
+}
+
+enum NotificationType {
+  SYSTEM
+  REMINDER
+  PROMOTION
+}
+
+enum AnnouncementAudience {
+  ALL
+  ACTIVE_MEMBERS
+  INACTIVE_MEMBERS
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      NotificationType @default(SYSTEM)
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([userId, isRead])
+}
+
+model Announcement {
+  id        String               @id @default(cuid())
+  title     String
+  content   String
+  audience  AnnouncementAudience @default(ALL)
+  expiresAt DateTime?
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+}
+
+enum GoalType {
+  WEIGHT_LOSS
+  MUSCLE_GAIN
+  STRENGTH
+  GENERAL_FITNESS
+  ENDURANCE
+  FLEXIBILITY
+  BODY_RECOMPOSITION
+  OTHER
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model MemberGoal {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goalType    GoalType   @default(GENERAL_FITNESS)
+  title       String
+  description String?
+  targetValue Float?
+  targetUnit  String?    // e.g. "kg", "cm", "%"
+  startDate   DateTime   @default(now())
+  targetDate  DateTime?
+  status      GoalStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([userId, status])
+}
+
+model MemberNote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note      String
+  createdBy String?  // Name or ID of owner
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
 }
 

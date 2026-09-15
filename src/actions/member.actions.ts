@@ -28,6 +28,7 @@ export async function createMember(formData: FormData) {
   const gender = formData.get("gender") as string;
   const dob = formData.get("dob") as string;
   const address = formData.get("address") as string;
+  const password = formData.get("password") as string;
 
   // Emergency Contact
   const emergencyContactName = formData.get("emergencyContactName") as string;
@@ -41,6 +42,10 @@ export async function createMember(formData: FormData) {
 
   if (!email || !firstName || !planId) {
     return { error: "Missing required fields" };
+  }
+
+  if (password && password.trim().length > 0 && password.trim().length < 6) {
+    return { error: "Password must be at least 6 characters long." };
   }
 
   try {
@@ -58,8 +63,10 @@ export async function createMember(formData: FormData) {
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + plan.duration);
 
-    // Create random initial password
-    const rawPassword = Math.random().toString(36).slice(-8);
+    // Initial portal password (custom or default "password123")
+    const rawPassword = password?.trim() && password.trim().length >= 6
+      ? password.trim()
+      : "password123";
     const hashedPassword = await bcrypt.hash(rawPassword, 10);
 
     const memberId = await generateMemberId();

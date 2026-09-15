@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { signIn } from "@/lib/auth";
+import { signIn, signOut } from "@/lib/auth";
 import { AuthError } from "next-auth";
 
 export async function registerOwner(formData: FormData) {
@@ -71,3 +71,8 @@ export async function authenticate(prevState: string | undefined, formData: Form
     throw error; // Let Next.js handle redirect
   }
 }
+
+export async function logoutAction() {
+  await signOut({ redirectTo: "/login" });
+}
+
